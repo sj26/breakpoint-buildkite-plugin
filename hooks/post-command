@@ -1,0 +1,5 @@
+#!/bin/bash
+
+if [[ "${BUILDKITE_COMMAND_EXIT_STATUS}" -ne 0 ]]; then
+  breakpoint wait --config="$BREAKPOINT_CONFIG"
+fi

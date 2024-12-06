@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if [[ -x /usr/local/bin/breakpoint ]]; then
+  echo "~~~ Breakpoint already installed"
+else
+  echo "~~~ Installing breakpoint"
+  tag="$(curl -s https://api.github.com/repos/namespacelabs/breakpoint/releases/latest | jq -r ".tag_name")"
+  echo "tag: $tag"
+  os="$(uname | tr A-Z a-z)"
+  echo "os: $os"
+  arch="$(uname -m)"
+  if [[ "$arch" = "x86_64" ]]; then
+    arch="amd64"
+  fi
+  echo "arch: $arch"
+  url="https://github.com/namespacelabs/breakpoint/releases/download/${tag}/breakpoint_${os}_${arch}.tar.gz"
+  echo "url: $url"
+  curl -fsSL "${url}" | tar -C /usr/local/bin -xz breakpoint
+fi
+
+export BREAKPOINT_CONFIG="/tmp/breakpoint-config"
+
+jq --null-input \
+   --arg duration "${BUILDKITE_PLUGIN_BREAKPOINT_DURATION:-30m}" \
+   --arg endpoint "${BUILDKITE_PLUGIN_BREAKPOINT_ENDPOINT:-"rendezvous.namespace.so:5000"}" \
+   --arg allowed_ssh_users runner \
+   --arg authorized_github_users "${BUILDKITE_PLUGIN_BREAKPOINT_AUTHORIZED_GITHUB_USERS}" \
+   '{allowed_ssh_users: $allowed_ssh_users | split(","), authorized_github_users: $authorized_github_users | split(","), duration: $duration, endpoint: $endpoint}' \
+   > "${BREAKPOINT_CONFIG}"
+
